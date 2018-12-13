@@ -12,7 +12,7 @@ type Props = {
 
 const End = class End extends React.Component<Props> {
     componentDidMount() {
-        this.props.dispatch(GameActions.generateField());
+        this.props.dispatch(GameActions.clearField());
     }
 
     result = () => {

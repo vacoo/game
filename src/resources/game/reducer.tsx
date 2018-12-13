@@ -26,12 +26,10 @@ export const initialState: GameStateInterface = {
 
 export default function gameReducer(state: GameStateInterface = initialState, action: any) {
     switch (action.type) {
-        case GameConstants.GENERATE_FIELD:
+        case GameConstants.CLEAR_FIELD:
             return {
                 ...state,
-                values: action.data.values,
-                userScore: action.data.win === UserType.USER ? state.userScore + 1 : state.userScore,
-                aiScore: action.data.win === UserType.AI ? state.aiScore + 1 : state.aiScore
+                values: action.data.values
             };
         case GameConstants.REPEAT_GAME:
             return {
@@ -42,7 +40,9 @@ export default function gameReducer(state: GameStateInterface = initialState, ac
         case GameConstants.SET:
             return {
                 ...state,
-                values: action.data.values
+                values: action.data.values,
+                userScore: action.data.win === UserType.USER ? state.userScore + 1 : state.userScore,
+                aiScore: action.data.win === UserType.AI ? state.aiScore + 1 : state.aiScore
             }    
     }
     return state;

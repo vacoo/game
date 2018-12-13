@@ -14,19 +14,20 @@ type Props = {
 
 const Game = class Game extends React.Component<Props> {
     componentDidMount() {
-        this.props.dispatch(GameActions.generateField());
+        this.clearField();
+        this.props.dispatch(GameActions.repeatGame());
     }
 
     onItemClick = (row: number, col: number) => {
         this.props.dispatch(GameActions.set(this.props.game.values, row, col));
     }
 
-    repeatGame = () => {
+    endGame = () => {
         window.location.hash = "end";
     }
 
-    breakGame = () => {
-        this.props.dispatch(GameActions.generateField());
+    clearField = () => {
+        this.props.dispatch(GameActions.clearField());
     }
 
     render() {
@@ -34,8 +35,8 @@ const Game = class Game extends React.Component<Props> {
             <div>
                 <h1 className="title">Игра</h1>
                 <p className="subtitle">Ваша цель победить могучий ИИ</p>
-                <button className="button" onClick={this.breakGame}>Заново</button>
-                {(this.props.game.aiScore > 0 || this.props.game.userScore > 0) && <button className="button" onClick={this.repeatGame}>Закончить игру</button>}
+                <button className="button" onClick={this.clearField}>Очистить поле</button>
+                {(this.props.game.aiScore > 0 || this.props.game.userScore > 0) && <button className="button" onClick={this.endGame}>Закончить игру</button>}
                 <table>
                     <tbody>
                         {this.props.game.values.map((tr, trIndex) => (

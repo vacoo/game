@@ -7,22 +7,14 @@ import GameReducer from "@resources/game/reducer";
 const loggerMiddleware = createLogger();
 
 export default function configureStore() {
-    let middlewares;
-    if (process.env.NODE_ENV === "development") {
-        middlewares = applyMiddleware(
-            thunkMiddleware,
-            // loggerMiddleware
-        );
-    } else {
-        middlewares = applyMiddleware(
-            thunkMiddleware
-        );
-    }
     let store = createStore(
         combineReducers({
             Game: GameReducer
         }),
-        middlewares
+        applyMiddleware(
+            thunkMiddleware,
+            // loggerMiddleware
+        )
     );
     return store;
 }

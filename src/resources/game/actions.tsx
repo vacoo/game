@@ -1,179 +1,198 @@
 import * as GameConstants from "@resources/game/constants";
 import * as GameReducer from "@resources/game/reducer";
 
-function checkwin(combinationList: Array<GameReducer.UserType>) {
-    if (combinationList.indexOf(GameReducer.UserType.AI) === 0 && combinationList.indexOf(GameReducer.UserType.USER) === -1) {
-        return GameReducer.UserType.AI;
-    } else if (
-        combinationList.indexOf(GameReducer.UserType.USER) === 0 &&
-        combinationList.indexOf(GameReducer.UserType.AI) === -1
+// Количество проставленных точек
+function squareCheckedCount(square: Array<Array<GameReducer.FieldInterface>>) {
+    let checked = 0;
+    for (let row in square) {
+        for (let col in square[row]) {
+            if (square[row][col].state) {
+                checked += 1;
+            }
+        }
+    }
+
+    return checked;
+}
+
+// Симуляция ИИ
+function aiChoose(square: Array<Array<GameReducer.FieldInterface>>): { row: number; col: number } | boolean {
+    // Вычисляем количество проставленных ячеек
+    let checked = squareCheckedCount(square);
+
+    if (checked >= square.length * square.length) {
+        // У ИИ нету ходов
+        return false;
+    }
+
+    let row = Math.floor(Math.random() * square.length);
+    let col = Math.floor(Math.random() * square.length);
+
+    while (square[row][col].state === true) {
+        row = Math.floor(Math.random() * square.length);
+        col = Math.floor(Math.random() * square.length);
+    }
+
+    return { row, col };
+}
+
+// Выяснияет кто выиграл
+function winUser(win: Array<GameReducer.UserType>): GameReducer.UserType | null {
+    if (
+        win.filter((value, index, self) => {
+            return self.indexOf(value) === index;
+        }).length === 1
     ) {
-        return GameReducer.UserType.USER;
+        return win[0];
     } else {
         return null;
     }
 }
 
-// Симуляция богоподобного ИИ
-function aiChoose(size: number) {
-    return Math.floor(Math.random() * (size));
+// Проверка по горизонтали
+function checkWinHorizontal(square: Array<Array<GameReducer.FieldInterface>>): GameReducer.UserType | null {
+    let win: Array<GameReducer.UserType> = [];
+
+    for (let row in square) {
+        for (let col in square[row]) {
+            if (square[row][col].state) {
+                win.push(square[row][col].type);
+            }
+        }
+        let result = square.length === win.length ? winUser(win) : null;
+        if (result !== null) {
+            return result;
+        } else {
+            win = [];
+        }
+    }
+
+    return null;
 }
 
-export function set(values: Array<Array<GameReducer.FieldInterface>>, row: number, col: number) {
-    const { size } = GameReducer.initialState;
+// Проверка по вертикали
+function checkWinVertical(square: Array<Array<GameReducer.FieldInterface>>): GameReducer.UserType | null {
+    let verticalSquare = square.map((col, i) => square.map(row => row[i]));
+    return checkWinHorizontal(verticalSquare);
+}
 
-    // Если в поле уже стоит то не трогаем
-    if(values[row][col].state === true) {
+function checkWinDiagonal(square: Array<Array<GameReducer.FieldInterface>>): GameReducer.UserType | null {
+    let win: Array<GameReducer.UserType> = [];
+    let winMirror: Array<GameReducer.UserType> = [];
+
+    // Главная диагональ
+    for (let row in square) {
+        for (let col in square[row]) {
+            if (row === col && square[row][col].state) {
+                win.push(square[row][col].type);
+            }
+        }
+    }
+
+    // Побочная диагональ
+    for (let row in square) {
+        if (square[row][square.length - Number(row) - 1].state) {
+            winMirror.push(square[row][square.length - Number(row) - 1].type);
+        }
+    }
+
+    let winDMain = win.length === square.length ? winUser(win) : null;
+    let winDMirror = winMirror.length === square.length ? winUser(winMirror) : null;
+
+    if (winDMain !== null) {
+        return winDMain;
+    } else if (winDMirror !== null) {
+        return winDMirror;
+    } else {
+        return null;
+    }
+}
+
+export function set(square: Array<Array<GameReducer.FieldInterface>>, row: number, col: number) {
+    // Если выбранная ячейка занята то возвращаем все как есть
+    if (square[row][col].state === true) {
         return {
             type: GameConstants.SET,
             data: {
-                values: values
+                values: square
             }
         };
     }
 
-    // Ставим крестик
-    let newValues = [...values];
-    newValues[row][col] = {
+    // Отмечаем ход игрока крестиком
+    square[row][col] = {
         type: GameReducer.UserType.USER,
         state: true
     };
 
-    // Вычисляем колиечство поставленных ячеек
-    let count = 0;
-    for (let i = 0; i < newValues.length; i++) {
-        for (let c = 0; c < newValues[i].length; c++) {
-            if (newValues[i][c].state) {
-                count += 1;
-            }
-        }
-    }
-
-    if(count < size * size) {
-        // Ставим нолик
-        let aiRow = aiChoose(size);
-        let aiCol = aiChoose(size);
-        while (newValues[aiRow][aiCol].state === true) {
-            aiRow = aiChoose(size);
-            aiCol = aiChoose(size);
-        }
-        newValues[aiRow][aiCol] = {
+    // Отмечаем ход ИИ ноликом
+    let ai = aiChoose(square);
+    if (typeof ai === "object") {
+        square[ai.row][ai.col] = {
             type: GameReducer.UserType.AI,
             state: true
         };
     }
 
-    let combinationList: Array<GameReducer.UserType> = [];
-    let win: GameReducer.UserType | null = null;
-
     // Проверяем победу по горизонтали
-    for (let i = 0; i < newValues.length; i++) {
-        for (let c = 0; c < newValues[i].length; c++) {
-            if (newValues[i][c].state) {
-                combinationList.push(newValues[i][c].type);
-            }
-        }
-        if (combinationList.length === GameReducer.initialState.size) {
-            win = checkwin(combinationList);
-            if(win !== null) {
-                break;
-            }
-        } else {
-            combinationList = [];
-        }
-    }
+    let win: GameReducer.UserType = null;
+    let winHorizontal = checkWinHorizontal(square);
+    let winVertical = checkWinVertical(square);
+    let winDiagonal = checkWinDiagonal(square);
 
-    // Проверка победы по вертикали
-    if (win === null) {
-        // Транспонируем массив
-        let rotatedNewValues = newValues.map((col, i) => newValues.map(row => row[i]));
-
-        // Проверяем победу по вертикали
-        for (let i = 0; i < rotatedNewValues.length; i++) {
-            for (let c = 0; c < rotatedNewValues[i].length; c++) {
-                if (rotatedNewValues[i][c].state) {
-                    combinationList.push(rotatedNewValues[i][c].type);
-                }
-            }
-            if (combinationList.length === GameReducer.initialState.size) {
-                win = checkwin(combinationList);
-                if(win !== null) {
-                    break;
-                }
-            } else {
-                combinationList = [];
-            }
-        }
-    }
-
-    // Проверка победы по диагонали
-    if (win === null) {
-        // Главная диагональ
-        for (let i = 0; i < newValues.length; i++) {
-            for (let c = 0; c < newValues[i].length; c++) {
-                if (i === c && newValues[i][c].state) {
-                    combinationList.push(newValues[i][c].type);
-                }
-            }
-        }
-        if (combinationList.length === GameReducer.initialState.size) {
-            win = checkwin(combinationList);
-        } else {
-            combinationList = [];
-        }
-
-        // Побочная диагональ
-        for (let i = 0; i < newValues.length; i++) {
-            if(newValues[i][GameReducer.initialState.size - i - 1].state) {
-                combinationList.push(newValues[i][GameReducer.initialState.size - i - 1].type);
-            }
-        }
-        if (combinationList.length === GameReducer.initialState.size) {
-            win = checkwin(combinationList);
-        } else {
-            combinationList = [];
-        }
-    }
-    
-    if (win || count + 1 === size * size) {
-        // Если есть победа или ничья то сбрасываем поле и передаем редюсеру кто победил
-        let generatedAction = generateField();
-        generatedAction["data"]["win"] = win;
-        return generatedAction;
+    if (winHorizontal !== null) {
+        win = winHorizontal;
+        square = _generateField();
+    } else if (winVertical) {
+        win = winVertical;
+        square = _generateField();
+    } else if (winDiagonal) {
+        win = winDiagonal;
+        square = _generateField();
     } else {
-        return {
-            type: GameConstants.SET,
-            data: {
-                values: newValues
-            }
-        };
+        // Ничья
+        if (square.length * square.length === squareCheckedCount(square)) {
+            square = _generateField();
+        }
     }
+
+    return {
+        type: GameConstants.SET,
+        data: {
+            values: square,
+            win: win
+        }
+    };
 }
 
-// Генерирует поле
-export function generateField() {
-    let values: Array<Array<GameReducer.FieldInterface>> = [];
+// Генерирует игровое поле по размеру
+function _generateField() {
+    let square: Array<Array<GameReducer.FieldInterface>> = [];
+    const { size } = GameReducer.initialState;
 
-    for (let i = 0; i < GameReducer.initialState.size; i++) {
-        let field: Array<GameReducer.FieldInterface> = [];
-
-        for (let f = 0; f < GameReducer.initialState.size; f++) {
-            field.push({
+    for (let i = 0; i < size; i++) {
+        let row: Array<GameReducer.FieldInterface> = [];
+        for (let j = 0; j < size; j++) {
+            row.push({
                 type: null,
                 state: false
             });
         }
-
-        values.push(field);
+        square.push(row);
     }
 
+    return square;
+}
+
+// Генерирует поле
+export function clearField() {
     let data: { values: Array<Array<GameReducer.FieldInterface>>; win: GameReducer.UserType } = {
-        values: values,
+        values: _generateField(),
         win: null
     };
 
     return {
-        type: GameConstants.GENERATE_FIELD,
+        type: GameConstants.CLEAR_FIELD,
         data: data
     };
 }

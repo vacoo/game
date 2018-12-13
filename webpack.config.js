@@ -2,16 +2,8 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const webpack = require("webpack");
-const DotEnv = require("dotenv");
 const UglifyJsPlugin = require("uglifyjs-webpack-plugin");
 const OptimizeCSSAssetsPlugin = require("optimize-css-assets-webpack-plugin");
-
-const env = DotEnv.config().parsed;
-
-const envKeys = Object.keys(env).reduce((prev, next) => {
-  prev[`process.env.${next}`] = JSON.stringify(env[next]);
-  return prev;
-}, {});
 
 const common = {
   entry: {
@@ -81,7 +73,6 @@ var dev = {
   ...common,
   devtool: "inline-source-map",
   plugins: [
-    new webpack.DefinePlugin(envKeys),
     new ExtractTextPlugin({
       filename: "[name].[hash].css"
     }),
@@ -114,7 +105,6 @@ var prod = {
   },
   plugins: [
     new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/),
-    new webpack.DefinePlugin(envKeys),
     new UglifyJsPlugin({
       sourceMap: false,
       extractComments: false,
