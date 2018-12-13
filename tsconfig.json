@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "allowSyntheticDefaultImports": true,
+    "jsx": "react",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "sourceMap": true,
+    "target": "es2017",
+    "esModuleInterop": true,
+    "watch": true,
+    "baseUrl": "./",
+    "paths": {
+      "@root/*": ["./"],
+      "@components/*" : ["./src/components/*"],
+      "@containers/*" : ["./src/containers/*"],
+      "@resources/*" : ["./src/resources/*"],
+      "@styles/*": ["./src/styles/*"]
+    }
+  },
+  "exclude": ["node_modules"]
+}
